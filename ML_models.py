@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
 
 
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -15,16 +14,11 @@ import ROOT as R
 sns.set(color_codes=True)
 
 
-# In[3]:
 
-
-#Load the model
+# Load the DNN model
 model = load_model('DNN_model.h5')
 
-
-# In[6]:
-
-
+# A naive function to estimate the prior on the whole data
 def prior(X,y):
     from sklearn.metrics import confusion_matrix
     y_pred = model.predict(X)
@@ -35,9 +29,7 @@ def prior(X,y):
     print("The prior probibility is: %.2f%%" % (prior_prob) )
 
 
-# In[5]:
-
-
+#Loading data from .root files
 pd.set_option('display.float_format', lambda x: '%.10f' % x)
 df = root_pandas.read_root('/srv/data/hosein47/Analysis/Analysis_BKGx1_etau_signal_all_pi.root',key='pi')
 X = df.iloc[:,[1,3]].values
@@ -48,16 +40,8 @@ from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 
 
-# In[7]:
 
-
-prior(X,y)
-
-
-# In[4]:
-
-
-# Predicting the Test set results
+# Predicting the Test set results with DNN
 y_pred = model.predict(X_test)
 y_pred = y_pred.round().astype(int)
 y_test = y_test.astype(int)
@@ -74,11 +58,14 @@ print(cm)
 print(report_model)
 
 
-# In[8]:
+#Applying k-Fold Cross Validation
+from sklearn.model_selection import cross_val_score
+accuracies = cross_val_score(estimator = model, X = X_train, y = y_train, cv = 10)
+accuracies.mean()
+accuracies.std()
 
 
 # Visualising the Training set results
-
 plt.figure(figsize=[15,7])
 from matplotlib.colors import ListedColormap
 sns.set_style('darkgrid')
@@ -97,9 +84,6 @@ plt.xlabel('cosTheta')
 plt.ylabel('Pt')
 plt.legend()
 plt.show()
-
-
-# In[9]:
 
 
 # Visualising the Test set results
@@ -122,14 +106,8 @@ plt.ylabel('Pt')
 plt.legend()
 plt.show()
 
+#Using Other methods:
 
-# In[ ]:
-
-
-
-
-
-# In[10]:
 
 
 # Using Random Forest
@@ -140,19 +118,6 @@ Classifier_RF=RandomForestClassifier(n_estimators=50).fit(X_train,y_train)
 y_pred_RF = Classifier_RF.predict(X_test) 
 accuracy_RF=accuracy_score(y_test,y_pred_RF)
 print(accuracy_RF)
-
-
-# In[13]:
-
-
-#Using kernel SVM
-
-from sklearn.svm import SVC
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score 
-
-
-# In[7]:
 
 
 #Using kernel SVM
@@ -168,32 +133,19 @@ accuracy_SVM=accuracy_score(y_test,y_pred_SVM)
 print(cm_SVM)
 print(accuracy_SVM)
 
-
-# In[9]:
-
-
 #Save SVM
 import pickle
 filename = 'classifier_SVM.sav'
 pickle.dump(classifier_SVM, open(filename, 'wb'))
 
-
-# In[11]:
-
+#load SVM
 
 import pickle
 classifier_SVM= pickle.load(open('classifier_SVM.sav', 'rb'))
 
-
-# In[22]:
-
-
 y_pred_SVM = classifier_SVM.predict(X_test)
 report_SVM= classification_report(y_test,y_pred_SVM)
 print(report_SVM)
-
-
-# In[12]:
 
 
 #Using xgboost
@@ -211,9 +163,10 @@ print(accuracy_xgb)
 print(confusion_matrix(y_test, y_pred_xgb))
 
 
-# In[13]:
 
 
+
+#Comparing the models using ROC_AUC
 from sklearn.metrics import roc_curve, auc
 y = y_test
 scores_DNN= model.predict(X_test)
@@ -250,9 +203,6 @@ plt.ylabel('true Positive Rate')
 plt.title('ROC_AUC')
 plt.legend(loc="lower right")
 plt.show()
-
-
-# In[ ]:
 
 
 
