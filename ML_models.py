@@ -60,7 +60,7 @@ print(report_model)
 
 #Applying k-Fold Cross Validation
 from sklearn.model_selection import cross_val_score
-accuracies = cross_val_score(estimator = model, X = X_train, y = y_train, cv = 10)
+accuracies = cross_val_score(estimator = model, X = X_train, y = y_train, cv = 10, scoring='accuracy')
 accuracies.mean()
 accuracies.std()
 
