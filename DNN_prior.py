@@ -14,7 +14,6 @@ import ROOT as R
 sns.set(color_codes=True)
 
 
-# In[42]:
 
 
 # Importing the dataset
@@ -27,27 +26,16 @@ lh=df.iloc[:,6]
 
 # In[43]:
 
-
+#Load the DNN model
 from keras.models import load_model
 model = load_model('DNN_model.h5')
 
 
-# In[5]:
-
-
-from keras import backend as K
-
-inp = model.input                                           # input placeholder
-outputs = [layer.output for layer in model.layers]          # all layer outputs
-functors = [K.function([inp], [out]) for out in outputs]
-layer_outs = [func([X_train]) for func in functors]
-#print(layer_outs[6])
-
-
-# In[6]:
 
 
 #adding the output of the last layer of DNN as the prior probability (value between 0 and 1)
+from keras import backend as K
+inp = model.input
 output=model.layers[6].output
 functor=K.function([inp],[output])
 out=np.array(functor([X]))
@@ -117,11 +105,6 @@ data['PID']=((data['prior']*data['PionID'])/((1-data['prior'])+(data['prior'] * 
 analysis= pd.DataFrame.copy(data)
 analysis.insert(8, "isSignal", y)
 analysis = analysis[['cosTheta',"pt","prior","PionID","PID","binned_ct","binned_pt","binned_prior","isSignal"]]
-
-
-# In[14]:
-
-
 analysis.head()
 
 
@@ -132,19 +115,14 @@ plt.figure(figsize=[10,5])
 sns.heatmap(analysis.corr(), annot=True)
 
 
-# In[37]:
 
+
+# Applying PCA
 
 a=analysis.iloc[:,:4]
 b=analysis.iloc[:,8]
 from sklearn.model_selection import train_test_split
 a_train, a_test, b_train, b_test = train_test_split(a, b, test_size = 0.2, random_state = 0)
-
-
-# In[41]:
-
-
-# Applying PCA
 
 from sklearn.decomposition import PCA
 pca = PCA(n_components = None)
