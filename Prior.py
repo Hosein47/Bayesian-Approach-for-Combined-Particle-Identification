@@ -65,23 +65,6 @@ plt.show()
 
 
 
-#The number of signals over the number of background which is the prior
-plt.figure(figsize=[15,8])
-
-H_signal, xedges, yedges, im = plt.hist2d(x=data['cosTheta'], y=data['pt'], bins=(8,12), range=[[-1, 1], [0, 3]], weights=data['isSignal']==1,normed=False)
-H_all, xedges, yedges, im = plt.hist2d(x=data['cosTheta'],y=data['pt'], bins=(8,12),range=[[-1, 1], [0, 3]])
-extent = [0,3, 1, -1]
-plt.imshow(H_signal/H_all, extent=extent,interpolation='nearest')
-
-for i in range(len(xedges)-1):
-    for j in range(len(yedges)-1):
-        plt.text(xedges[i]+0.125,yedges[j]+0.125, np.around((np.nan_to_num(H_signal/H_all))[i,j]*100,decimals=0), 
-                 color="w", ha="center", va="center", fontweight="bold")
-plt.colorbar()
-plt.show()
-
-
-
 #transfering the info to a dataframe
 plt.figure(figsize=[15,8])
 H1=pd.DataFrame(H_signal)
@@ -89,6 +72,9 @@ H2=pd.DataFrame(H_all)
 prior=(H1/H2)
 prior.replace(np.nan, 0, inplace=True)
 prior
+
+#The number of signals over the number of background which is the prior in a heatmap
+sns.heatmap(prior, annot=True)
 
 
 
@@ -103,7 +89,7 @@ new_prior=pd.DataFrame(ls).rename(columns={0:"prior"})
 
 
 
-#biining the data and adding the new column which is the prior
+#bining the data and adding the new column which is the prior
 bins_pt = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3]
 bins_ct=[-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1]
 com= pd.DataFrame.copy(X)
@@ -130,7 +116,7 @@ plt.figure(figsize=[10,5])
 sns.heatmap(analysis.corr(), annot=True)
 
 
-
+#A contour plot from ROOT
 print(__doc__)
 import rootpy
 from rootpy.plotting import root2matplotlib as rplt
