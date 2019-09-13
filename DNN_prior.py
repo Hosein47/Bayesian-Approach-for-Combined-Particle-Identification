@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 get_ipython().run_line_magic('matplotlib', 'inline')
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,8 +11,6 @@ import ROOT as R
 sns.set(color_codes=True)
 
 
-
-
 # Importing the dataset
 #pd.set_option('display.float_format', lambda x: '%.8f' % x)
 df = root_pandas.read_root('/srv/data/hosein47/Analysis/Analysis_BKGx1_etau_signal_all_pi.root',key='pi')
@@ -23,13 +18,9 @@ X = df.iloc[:,[1,3]]
 y = df.iloc[:,11]
 lh=df.iloc[:,6]
 
-
-# In[43]:
-
 #Load the DNN model
 from keras.models import load_model
 model = load_model('DNN_model.h5')
-
 
 
 
@@ -48,20 +39,8 @@ data.insert(3, "PionID", lh)
 data.head()
 
 
-# In[7]:
-
 
 sns.scatterplot(data['pt'], data['prior'])
-
-
-# In[8]:
-
-
-plt.figure(figsize=[10,4])
-sns.heatmap(data.corr(),annot=True)
-
-
-# In[9]:
 
 
 #binnig the cosTheta and transverse momentum
@@ -75,29 +54,15 @@ data=pd.DataFrame(data)
 data.head()
 
 
-# In[10]:
-
-
-#This categorisation helps finding out the prior for eachdesired bin
+#This categorisation helps finding out the prior for each desired bin
 gr=data.groupby(['binned_pt', 'binned_ct'])
 nw= gr.mean().reset_index()
 nw.head(10)
 
 
-# In[11]:
-
-
-sns.scatterplot(nw['pt'],nw['prior'])
-
-
-# In[12]:
-
-
 plt.figure(figsize=[15,7])
 sns.boxplot(nw['binned_pt'], nw['prior'])
-
-
-# In[13]:
+sns.scatterplot(nw['pt'],nw['prior'])
 
 
 # Adding the new Posterior to the dataset as PID, and examine its performance with respect to the old Posterior
@@ -108,44 +73,54 @@ analysis = analysis[['cosTheta',"pt","prior","PionID","PID","binned_ct","binned_
 analysis.head()
 
 
-# In[15]:
+
+#Defing a function to show distplot with hue (Should add it to the Seaborn repo)
+#The prior is actually correct as the output of my DNN
+def distplot_with_hue(data=None, x=None, hue=None, row=None, col=None, legend=True, **kwargs):
+    _, bins = np.histogram(data[x].dropna())
+    g = sns.FacetGrid(data, hue=hue, row=row, col=col, height=8, aspect=2)
+    g.map(sns.distplot, x, **kwargs)
+    if legend and (hue is not None) and (hue not in [x, row, col]):
+        g.add_legend(title=hue)
+        
+distplot_with_hue(data=analysis, x='prior', hue='isSignal', hist=True)
 
 
+
+
+#Checking the correlation between PID and isSignal
 plt.figure(figsize=[10,5])
 sns.heatmap(analysis.corr(), annot=True)
 
 
 
+#Comparing the new posterior, prior, and old PionID (The new PID is doing better!)
+from sklearn.metrics import roc_curve, auc
+u = analysis['isSignal'].values
+scores_prior= analysis['prior'].values
+fpr_prior, tpr_prior, thresholds_prior = roc_curve(u, scores_prior)
+roc_auc_prior = auc(fpr_prior, tpr_prior)
 
-# Applying PCA
+scores_PionID= analysis['PionID'].values
+fpr_PionID, tpr_PionID, thresholds_PionID =roc_curve(u,scores_PionID)
+roc_auc_PionID = auc(fpr_PionID, tpr_PionID)
 
-a=analysis.iloc[:,:4]
-b=analysis.iloc[:,8]
-from sklearn.model_selection import train_test_split
-a_train, a_test, b_train, b_test = train_test_split(a, b, test_size = 0.2, random_state = 0)
+scores_PID= analysis['PID'].values
+fpr_PID, tpr_PID, thresholds_PID =roc_curve(u,scores_PID)
+roc_auc_PID = auc(fpr_PID, tpr_PID)
 
-from sklearn.decomposition import PCA
-pca = PCA(n_components = None)
-a = pca.fit_transform(a)
-a=pd.DataFrame(a)
-explained_variance = pca.explained_variance_ratio_
-explained_variance
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
+plt.figure()
+lw = 2
+plt.figure(figsize=[15,7])
+plt.plot(fpr_prior, tpr_prior, color= 'red', lw=lw, label='ROC curve prior (area = %0.3f)' % roc_auc_prior)
+plt.plot(fpr_PionID, tpr_PionID, color= 'black', lw=lw, label='ROC curve PionID (area = %0.3f)' % roc_auc_PionID)
+plt.plot(fpr_PID, tpr_PID, color= 'green', lw=lw, label='ROC curve PID (area = %0.3f)' % roc_auc_PID)
+plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.xlim([-0.01, 1.0])
+plt.ylim([-0.01, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('true Positive Rate')
+plt.title('ROC_AUC')
+plt.legend(loc="lower right")
+plt.show()
 
