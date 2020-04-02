@@ -199,7 +199,7 @@ def hs(y_true, y_pred, normalize=True, sample_weight=None):
 
 #Getting ready to plot ROC_AUC to see the performance of the Posterior
 X_new = df.iloc[:,0:3].reset_index(drop=True)
-y_new = model.predict_proba(X_test)
+y_new = model.predict_proba(X_new)
 prior=pd.DataFrame(y_new)
 
 df['pr_e']=prior[0]
