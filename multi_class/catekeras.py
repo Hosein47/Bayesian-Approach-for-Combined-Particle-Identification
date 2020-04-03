@@ -247,7 +247,7 @@ fpr_id["micro"], tpr_id["micro"], _ = roc_curve(y_roc.ravel(), y_pid.ravel())
 roc_auc_id["micro"] = auc(fpr_id["micro"], tpr_id["micro"])
 
 
-
+#Ploting the ROC_AUC
 plt.figure(figsize=[15,7])
 lw = 2
 
@@ -277,3 +277,59 @@ plt.ylabel('True Positive Rate')
 plt.title('ROC_AUC')
 plt.legend(loc="lower right")
 plt.show()
+
+#model probability prediction
+X_new = df.iloc[:,0:3].reset_index(drop=True)
+y_new = model.predict_proba(X_test)
+y_prob = model.predict_proba(X_all)
+yprob_train = model.predict_proba(X_train)
+
+
+# reliability diagram
+from sklearn.calibration import calibration_curve
+plt.figure(figsize=(9, 9))
+ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+ax2 = plt.subplot2grid((3, 1), (2, 0))
+ax1.plot([0, 1], [0, 1], "k:", label="Perfectly calibrated")
+fraction_of_positives, mean_predicted_value = calibration_curve(y_test[:,0], y_new[:,0], n_bins=10, normalize=True)
+fop_1, mpv_1 = calibration_curve(y_test[:,1], y_new[:,1], n_bins=10, normalize=True)
+fop_2, mpv_2 = calibration_curve(y_test[:,2], y_new[:,2], n_bins=10, normalize=True)
+fop_3, mpv_3 = calibration_curve(y_test[:,3], y_new[:,3], n_bins=10, normalize=True)
+ax1.plot(mean_predicted_value, fraction_of_positives, "s-", label="%s" % ('e', ))
+ax1.plot(mpv_1, fop_1, "s-", label="%s" % ('mu', ))
+ax1.plot(mpv_2, fop_2, "s-", label="%s" % ('pi', ))
+ax1.plot(mpv_3, fop_3, "s-", label="%s" % ('k', ))
+
+ax2.hist(y_new[:,0], range=(0, 1), bins=10, label='e', histtype="step", lw=1, color='b')
+ax2.hist(y_new[:,1], range=(0, 1), bins=10, label='mu', histtype="step", lw=1, color='darkorange')
+ax2.hist(y_new[:,2], range=(0, 1), bins=10, label='pi', histtype="step", lw=1, color='green')
+ax2.hist(y_new[:,3], range=(0, 1), bins=10, label='k', histtype="step", lw=1, color='red')
+
+ax1.set_ylabel("Fraction of positives")
+ax1.set_ylim([-0.05, 1.05])
+ax1.legend(loc="upper left")
+ax1.set_title('Calibration plots  (reliability curve)')
+
+ax2.set_xlabel("Mean predicted value")
+ax2.set_ylabel("Count")
+ax2.legend(loc="upper center", ncol=2)
+plt.tight_layout()
+
+
+#Tempreture scaling for probability calibration using netcal package
+from netcal.scaling import TemperatureScaling
+temperature = TemperatureScaling()
+temperature.fit(y_prob, y_all)
+calibrated = temperature.transform(y_prob)
+
+#Computing the expected calibration error
+from netcal.metrics import ECE
+from netcal.presentation import ReliabilityDiagram
+n_bins = 10
+ece = ECE(n_bins)
+uncalibrated_score = ece.measure(y_new,y_test)
+calibrated_score = ece.measure(calibrated,y_test)
+
+diagram = ReliabilityDiagram(n_bins)
+diagram.plot(y_new,y_test)  # visualize miscalibration of uncalibrated
+diagram.plot(calibrated,y_test)   # visualize miscalibration of calibrated
