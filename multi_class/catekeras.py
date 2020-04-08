@@ -201,17 +201,19 @@ def hs(y_true, y_pred, normalize=True, sample_weight=None):
 X_new = df.iloc[:,0:3].reset_index(drop=True)
 y_new = model.predict_proba(X_new)
 prior=pd.DataFrame(y_new)
+y_pid = df.iloc[:,[6,7,5,8]].values
 
 df['pr_e']=prior[0]
 df['pr_m']=prior[1]
 df['pr_p']=prior[2]
 df['pr_k']=prior[3]
+other=np.sum(yall_prob * y_pid, axis=1)
 
 # Adding the new Posterior to the dataset as PID, and examine its performance with respect to the old Posterior
-df['PID_e']=((df['pr_e']*df['electronID'])/((-df['pr_e']+1)+(df['pr_e'] * df['electronID'])))
-df['PID_m']=((df['pr_m']*df['muonID'])/((-df['pr_m']+1)+(df['pr_m'] * df['muonID'])))
-df['PID_p']=((df['pr_p']*df['pionID'])/((-df['pr_p']+1)+(df['pr_p'] * df['pionID'])))
-df['PID_k']=((df['pr_k']*df['kaonID'])/((-df['pr_k']+1)+(df['pr_k'] * df['kaonID'])))
+df['PID_e']=((df['pr_e']*df['electronID'])/(other+(df['pr_e'] * df['electronID'])))
+df['PID_m']=((df['pr_m']*df['muonID'])/(other+(df['pr_m'] * df['muonID'])))
+df['PID_p']=((df['pr_p']*df['pionID'])/(other+(df['pr_p'] * df['pionID'])))
+df['PID_k']=((df['pr_k']*df['kaonID'])/(other+(df['pr_k'] * df['kaonID'])))
 
 #defined exclusively for Roc curve
 from sklearn.metrics import roc_curve, auc
